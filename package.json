@@ -1,0 +1,12 @@
+{
+  "name": "webhook",
+  "version": "0.0.1",
+  "description": "Make simple server trigger event when receive request from github webhook or gitlab webhook;",
+  "keywords" : ["webhook","github-webhook","gitlab-webhook"],
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tran Quoc Cuong <trquoccuong@gmail.com>",
+  "license": "MIT"
+}
