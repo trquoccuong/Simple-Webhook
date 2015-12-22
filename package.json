@@ -1,5 +1,5 @@
 {
-  "name": "webhook",
+  "name": "simplewebhook",
   "version": "0.0.1",
   "description": "Make simple server trigger event when receive request from github webhook or gitlab webhook;",
   "keywords" : ["webhook","github-webhook","gitlab-webhook"],
