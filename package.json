@@ -1,6 +1,6 @@
 {
   "name": "simplewebhook",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Make simple server trigger event when receive POST request",
   "keywords": [
     "webhook",
