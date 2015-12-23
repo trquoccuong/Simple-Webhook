@@ -5,6 +5,7 @@ var url = require('url');
 var queryParse = require("querystring");
 
 http.ServerResponse.prototype.send = function (body) {
+
     if (typeof body === "number") {
         this.setHeader("Content-Type", "text/plain");
         this.statusCode = body;
@@ -32,6 +33,8 @@ module.exports = function (option) {
             this.response.send("ok")
         };
 
+
+
     switch (option.serverType) {
         case "gitlab" :
             config = require("./type/gitlab");
@@ -39,43 +42,59 @@ module.exports = function (option) {
         case "github" :
             config = require("./type/github");
             break;
-
+        case "custom" :
+            config.requestHeader =  option.requestHeader || "";
+            config.encoding =  option.encoding || "utf-8";
+            break;
     }
 
+
+
     var server = http.createServer();
-    server.addHook = function (settings) {
-        server.on("request", function (req, res) {
-            var connection = {};
-            connection.request = req;
-            connection.response = res;
-            var pattern = settings.link ? new RegExp("^" + settings.link + "$") : new RegExp("/");
-            var reqURL = url.parse(req.url);
-            connection.request.query = reqURL.query;
-            var bodyData = '';
+    server.routeInfo = [];
+    server.addHook = function (obj) {
+        server.routeInfo.push(obj);
+    };
 
-            req.setEncoding(config.encoding);
-            req.on('data', function (chunk) {
-                bodyData += chunk
-            });
+    server.on("request", function (req, res) {
+        var connection = {};
+        connection.request = req;
+        connection.response = res;
+        var reqURL = url.parse(req.url);
+        connection.request.query = reqURL.query;
+        var bodyData = '';
 
-            req.on('end', function () {
+        var patternArray = server.routeInfo.map(function (settings) {
+            return settings.link ? new RegExp("^" + settings.link + "$") : new RegExp("/");
+        });
 
-                var errorFunc = errorFunction;
-                if (settings.onError) {
-                    errorFunc = settings.onError;
-                }
-                if (req.headers['content-type'] === "application/x-www-form-urlencoded") {
-                    connection.request.body = queryParse.parse(bodyData);
-                }
+        req.setEncoding(config.encoding);
+        req.on('data', function (chunk) {
+            bodyData += chunk
+        });
 
-                if (req.headers['content-type'] === "application/json") {
-                    connection.request.body = JSON.parse(bodyData);
-                }
+        req.on('end', function () {
+            if (req.headers['content-type'] === "application/x-www-form-urlencoded") {
+                connection.request.body = queryParse.parse(bodyData);
+            }
 
-                if (req.method === "POST" && pattern.test(reqURL.pathname)) {
-                    if (req.headers[config.requestHeader] === settings.event || settings.event === "*") {
+            if (req.headers['content-type'] === "application/json") {
+                connection.request.body = JSON.parse(bodyData);
+            }
+
+            if (req.method === "POST") {
+                var filterPattern = patternArray.filter(function (pattern) {
+                    if (pattern.test(reqURL.pathname)) {
+                        return pattern
+                    }
+                });
+
+                if (filterPattern.length > 0) {
+                    var index  = patternArray.indexOf(filterPattern[0]);
+                    var settings = server.routeInfo[index];
+
+                    if (req.headers[config.requestHeader] === settings.event || req.headers[config.requestHeader.toLowerCase()] === settings.event || settings.event === "*") {
                         var callback = settings.handler ? settings.handler.bind(connection) : successFuntion.bind(connection);
-
                         if (settings.exec) {
                             var execOption = settings.options || {};
                             return child.exec(settings.exec, execOption, callback);
@@ -121,17 +140,19 @@ module.exports = function (option) {
                             });
 
                             spawnEx.on("close", function () {
-                                callback(stdoutData, stderrData);
+                                callback(null, stdoutData, stderrData);
                             });
-                            spawnEx.on("error", errorFunc.bind(connection));
+                            spawnEx.on("error", function (err) {
+                                callback(err, stdoutData, stderrData);
+                            });
                             return spawnEx;
                         }
                         return callback();
                     }
                 }
-                errorFunc.call(connection)
-            })
+            }
+            errorFunction.call(connection)
         })
-    };
+    });
     return server;
 };

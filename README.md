@@ -1,6 +1,6 @@
 # Simple Webhook server
 
-> Make simple server trigger event when receive request from github webhook or gitlab webhook;
+> Make simple server trigger event when receive POST request. Support github-webhook, gitlab-webhook or custom webhook
 
 ```
 "use strict";
@@ -30,7 +30,9 @@ server.listen(3333);
 
 ## Server config
 ```
-    serverType : gitlab || github
+    serverType : gitlab || github || custom
+    requestHeader : Custom key to get event (only for custom)
+    encoding : utf-8 by default (only for custom)
     onError : function call if invalid request (send("error") by default)
     onDone : function call if valid request(send("ok") by default)
 ```
@@ -43,8 +45,7 @@ You can use ```addHook``` function to add route
     link : route receive POST request from github
     event : event to active command ("*" for any events)
     options : options for node exec
-    handler : callback function,
-        if spawn command it will receive 2 params (stdout,stderr)
+    handler : callback function (err,stdout,stderr)
     exec : command will trigger when receive request
     execFile: file will run when receive request
     spawn : spawn command

@@ -13,10 +13,12 @@ server.addHook({
     options : {
         encoding: 'utf8'
     },
-    handler : function (data,err) {
-        console.log(data,err);
+    handler : function (err,stdout,stderr) {
+        console.log(stdout,stderr);
         this.response.send("Hello");
     }
 });
 
-server.listen(3333);
+server.listen(3333, function () {
+    console.log("HelloWorld");
+});
